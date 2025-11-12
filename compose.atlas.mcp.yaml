@@ -1,0 +1,184 @@
+# Docker Compose configuration for MongoDB Atlas + MCP Server
+# This setup uses:
+# - MongoDB Atlas (hosted on AWS) - cloud-based
+# - Redis - local container
+# - Node.js Application - local container
+# - MongoDB MCP Server - local container (for AI-assisted database operations)
+# - Mongo Express - web-based MongoDB admin UI (optional)
+#
+# Prerequisites:
+# 1. Create a MongoDB Atlas cluster on AWS
+# 2. Create database: docker-chuckles-prod
+# 3. Create database user with readWrite permissions
+# 4. Whitelist your local IP address (or 0.0.0.0/0 for testing) in Atlas Network Access
+# 5. Copy .env.atlas.template to .env.atlas and fill in your Atlas connection string
+# 6. (Optional) Configure Atlas API keys for advanced MCP features
+#
+# Usage:
+#   docker compose -f compose.atlas.mcp.yaml --env-file .env.atlas up --build
+#
+# Stop:
+#   docker compose -f compose.atlas.mcp.yaml down
+#
+# View logs:
+#   docker compose -f compose.atlas.mcp.yaml logs -f
+
+
+services:
+  # Redis service for caching (runs locally)
+  redis:
+    image: redis:7-alpine
+    container_name: chuckles-redis-atlas
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_atlas:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - atlas-network
+    restart: unless-stopped
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "com.docker.compose.service=redis"
+      - "description=Redis cache for ContainerComedy Club"
+
+  # Application service (runs locally, connects to Atlas)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chuckles-app-atlas
+    ports:
+      - "3001:3001"
+    environment:
+      # MongoDB Atlas Configuration (from .env.atlas)
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-3001}
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-docker-chuckles-dev}
+      
+      # Local Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      
+      # AWS Configuration (optional)
+      - AWS_REGION=${AWS_REGION:-us-east-2}
+      
+      # App Configuration
+      - AUTO_SEED=${AUTO_SEED:-true}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - atlas-network
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "com.docker.compose.service=app"
+      - "description=ContainerComedy Club Application"
+
+  # MongoDB MCP Server (for AI-assisted database operations)
+  # Enables natural language queries and AI-powered database interactions
+  # Accessible via MCP Gateway for GitHub Copilot integration
+  mcp-server:
+    image: node:23-alpine
+    container_name: mongodb-mcp-server
+    command: >
+      sh -c "npx -y @mongodb-js/mongodb-mcp-server@latest ${MDB_MCP_READ_ONLY:+--readonly}"
+    environment:
+      # MongoDB Connection (connects to Atlas)
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-docker-chuckles-dev}
+      
+      # MCP Server Configuration
+      - MDB_MCP_READ_ONLY=${MDB_MCP_READ_ONLY:-true}
+      - MCP_SERVER_PORT=${MCP_SERVER_PORT:-3002}
+      
+      # Atlas API Credentials (optional - for advanced features)
+      # Uncomment and set these in .env.atlas for Atlas management tools:
+      # - ATLAS_PUBLIC_KEY=${ATLAS_PUBLIC_KEY}
+      # - ATLAS_PRIVATE_KEY=${ATLAS_PRIVATE_KEY}
+      # - ATLAS_ORG_ID=${ATLAS_ORG_ID}
+      # - ATLAS_PROJECT_ID=${ATLAS_PROJECT_ID}
+      
+      # Logging and Debug
+      - NODE_ENV=production
+      - DEBUG=${MCP_DEBUG:-}
+      - LOG_LEVEL=${MCP_LOG_LEVEL:-info}
+    volumes:
+      # Mount a volume for exported data
+      - mcp_exports:/exports
+    networks:
+      - atlas-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "com.docker.compose.service=mcp-server"
+      - "description=MongoDB MCP Server for AI-assisted database operations"
+      - "mcp.gateway.enabled=true"
+      - "mcp.gateway.protocol=stdio"
+
+  # Mongo Express - Web-based MongoDB admin interface (optional)
+  # Provides a UI to view and manage your MongoDB Atlas data
+  # Access at: http://localhost:8081
+  
+  # MCP Gateway (optional - for GitHub Copilot integration)
+  # Uncomment this service if you want to expose MCP server to GitHub Copilot
+  # mcp-gateway:
+  #   image: your-org/mcp-gateway:latest
+  #   container_name: mcp-gateway
+  #   ports:
+  #     - "3003:3003"
+  #   environment:
+  #     - GATEWAY_PORT=3003
+  #     - MCP_SERVER_HOST=mcp-server
+  #     - MCP_SERVER_PORT=3002
+  #   depends_on:
+  #     - mcp-server
+  #   networks:
+  #     - atlas-network
+  #   restart: unless-stopped
+  #   labels:
+  #     - "com.docker.compose.project=container-comedy-club"
+  #     - "com.docker.compose.service=mcp-gateway"
+  #     - "description=MCP Gateway for GitHub Copilot"
+
+volumes:
+  # Only Redis data needs to be persisted locally
+  # MongoDB data is stored in Atlas
+  redis_data_atlas:
+    driver: local
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "description=Redis cache data for Atlas deployment"
+  
+  # Volume for MCP server data exports
+  mcp_exports:
+    driver: local
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "description=MongoDB MCP Server export data"
+
+networks:
+  atlas-network:
+    driver: bridge
+    labels:
+      - "com.docker.compose.project=container-comedy-club"
+      - "description=Network for Atlas-connected services"
