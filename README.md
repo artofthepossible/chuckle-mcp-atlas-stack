@@ -4,39 +4,6 @@
 
 A modern, interactive joke application that delivers container-themed humor with style! Built with React, Express, MongoDB, and Redis, featuring SNL-style sound effects and smooth animations.
 
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
-![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
-
-## ✨ Features
-
-### 🎨 Visual Design
-- ✅ Clean gray background (`bg-gray-100`)
-- ✅ White header section with bold black title
-- ✅ Large, bold typography (5xl-6xl heading, 2xl-3xl for setup/punchline)
-- ✅ White joke card with rounded corners and shadow
-- ✅ Simple blue button (`bg-blue-600`) with clean rectangular style
-- ✅ Minimalist layout - no gradients, focused on readability
-
-### 🎭 Interactive Features
-- ✅ **SNL sound effects** - drum roll and rimshot audio
-- ✅ **Progressive reveal** - 2-second pause before punchline
-- ✅ **Drum roll animation** - spinning drum emoji during reveal
-- ✅ **Fade-in animation** for punchline
-- ✅ **Hover effects** on button (lift and scale)
-- ✅ **Times displayed counter** - tracks joke popularity
-- ✅ **Loading spinner** when fetching jokes
-
-### 🏗️ Technical Stack
-- **Frontend:** React 18 with modern hooks
-- **Backend:** Express.js with async/await
-- **Database:** MongoDB (docker-chuckles-dev database, jokes collection)
-- **Cache:** Redis for performance optimization
-- **Styling:** Tailwind CSS with custom animations
-- **Containerization:** Docker & Docker Compose
-
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -105,7 +72,7 @@ docker compose -f compose.atlas.mcp.yaml --env-file .env.atlas up --build
 | **Cost** | Free | Free tier available |
 | **AI Operations** | No | Yes (MCP Server) |
 | **Cloud Backups** | No | Yes (automatic) |
-| **Admin UI** | Via CLI | Mongo Express + Atlas UI |
+| **Admin UI** | Via CLI | Mongo Atlas + Atlas UI |
 | **Best For** | Quick dev/testing | Production/collaboration |
 
 ## 📁 Project Structure
@@ -140,7 +107,6 @@ The app uses SNL-style sound effects. To add them:
 1. Download free sound effects from:
    - [Freesound.org](https://freesound.org/)
    - [Zapsplat](https://www.zapsplat.com/)
-   - [BBC Sound Effects](https://sound-effects.bbcrewind.co.uk/)
 
 2. Search for:
    - "drum roll comedy"
